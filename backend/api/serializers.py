@@ -121,7 +121,7 @@ class FavoriteCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     'Рецепт есть в избранных.'
                 )
-        elif self.context['request'].method == 'DELETE':
+        if self.context['request'].method == 'DELETE':
             if not user.favorite_recipes.filter(recipe=recipe).exists():
                 raise serializers.ValidationError(
                     'Рецепта нет в избранных.'
@@ -155,7 +155,7 @@ class ShoppingCartCreateSerializer(serializers.Serializer):
                 raise serializers.ValidationError(
                     'Рецепт находится в корзине.'
                 )
-        elif self.context['request'].method == 'DELETE':
+        if self.context['request'].method == 'DELETE':
             if user.shopping_carts.filter(recipe=recipe).exists():
                 raise serializers.ValidationError('Рецепта нет в корзине.')
         return attrs
