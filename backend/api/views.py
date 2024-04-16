@@ -60,8 +60,8 @@ class CustomUserViewSet(UserViewSet):
         pagination_class=CustomPagination
     )
     def subscriptions(self, request):
-        user = request.user
-        queryset = user.author.all()
+        # queryset = request.user.author.all() Не может отобразить на сайте(
+        queryset = CustomUser.objects.filter(author__user=self.request.user)
         pages = self.paginate_queryset(queryset)
         serializer = SubscriptionSerializer(
             pages, many=True, context={'request': request}
