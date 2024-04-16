@@ -2,6 +2,9 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.db import models
 
+MAX_LEN_STR = 15
+MAX_LEN_USER = 150
+
 
 class CustomUser(AbstractUser):
     USERNAME_FIELD = 'email'
@@ -13,17 +16,17 @@ class CustomUser(AbstractUser):
     )
     username = models.CharField(
         'Пользователь',
-        max_length=150,
+        max_length=MAX_LEN_USER,
         unique=True,
         validators=[
             UnicodeUsernameValidator()
         ],
     )
-    first_name = models.CharField('Имя', max_length=150)
-    last_name = models.CharField('Фамилия', max_length=150)
+    first_name = models.CharField('Имя', max_length=MAX_LEN_USER)
+    last_name = models.CharField('Фамилия', max_length=MAX_LEN_USER)
     password = models.CharField(
         'Пароль',
-        max_length=150,
+        max_length=MAX_LEN_USER,
         blank=False,
     )
 
@@ -33,7 +36,7 @@ class CustomUser(AbstractUser):
         ordering = ('username',)
 
     def __str__(self):
-        return self.username[:15]
+        return self.username[:MAX_LEN_STR]
 
 
 class Subscription(models.Model):
@@ -61,4 +64,7 @@ class Subscription(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.user[:15]} подписан на {self.author[:15]}'
+        return (
+            f'{self.user[:MAX_LEN_STR]} подписан '
+            f'на {self.author[:MAX_LEN_STR]}'
+        )

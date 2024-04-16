@@ -1,12 +1,16 @@
 import base64
 
 from django.core.files.base import ContentFile
+from django.core.validators import MinValueValidator, MaxValueValidator
 from rest_framework import serializers
 
 from recipes.models import (
     Favorite, Ingredient, Recipe, RecipeIngredient, ShoppingCart, Tag
 )
 from users.models import CustomUser, Subscription
+
+MIN_AMOUNT = 1
+MAX_AMOUNT = 32000
 
 
 class Base64ImageField(serializers.ImageField):
@@ -50,10 +54,10 @@ class CustomUserSerializer(serializers.ModelSerializer):
         )
 
     def get_is_subscribed(self, obj):
-        user = self.context.get('request').user
+        user = self.context['request'].user
         if user.is_anonymous:
             return False
-        return Subscription.objects.filter(user=user, author=obj.id).exists()
+        return user.subscribers.filter(author=obj).exists()
 
 
 class SubscriptionSerializer(CustomUserSerializer):
@@ -88,7 +92,7 @@ class SubscriptionCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'Нельзя подписаться на себя.'
             )
-        if Subscription.objects.filter(user=user, author=author).exists():
+        if user.subscribers.filter(author=author).exists():
             raise serializers.ValidationError(
                 'Вы уже подписаны на этого пользователя.'
             )
@@ -113,12 +117,12 @@ class FavoriteCreateSerializer(serializers.Serializer):
         user = self.context['request'].user
         recipe = data['recipe']
         if self.context['request'].method == 'POST':
-            if Favorite.objects.filter(user=user, recipe=recipe).exists():
+            if user.favorite_recipes.filter(recipe=recipe).exists():
                 raise serializers.ValidationError(
                     'Рецепт есть в избранных.'
                 )
         elif self.context['request'].method == 'DELETE':
-            if not Favorite.objects.filter(user=user, recipe=recipe).exists():
+            if not user.favorite_recipes.filter(recipe=recipe).exists():
                 raise serializers.ValidationError(
                     'Рецепта нет в избранных.'
                 )
@@ -147,12 +151,12 @@ class ShoppingCartCreateSerializer(serializers.Serializer):
         user = self.context['request'].user
         recipe = attrs['recipe']
         if self.context['request'].method == 'POST':
-            if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+            if user.shopping_carts.filter(recipe=recipe).exists():
                 raise serializers.ValidationError(
                     'Рецепт находится в корзине.'
                 )
         elif self.context['request'].method == 'DELETE':
-            if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
+            if user.shopping_carts.filter(recipe=recipe).exists():
                 raise serializers.ValidationError('Рецепта нет в корзине.')
         return attrs
 
@@ -183,6 +187,12 @@ class RecipeIngredientCreateSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(
         queryset=Ingredient.objects.all()
     )
+    amount = serializers.IntegerField(
+        validators=[
+            MinValueValidator(MIN_AMOUNT),
+            MaxValueValidator(MAX_AMOUNT)
+        ]
+    )
 
     class Meta:
         model = RecipeIngredient
@@ -207,13 +217,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         if not user.is_authenticated:
             return False
-        return Favorite.objects.filter(user=user, recipe=obj).exists()
+        return user.favorite_recipes.filter(recipe=obj).exists()
 
     def get_is_in_shopping_cart(self, obj):
         user = self.context['request'].user
         if not user.is_authenticated:
             return False
-        return ShoppingCart.objects.filter(user=user, recipe=obj).exists()
+        return user.shopping_carts.filter(recipe=obj).exists()
 
 
 class RecipeCreateSerializer(serializers.ModelSerializer):
@@ -224,6 +234,12 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
     )
     author = CustomUserSerializer(
         read_only=True
+    )
+    cooking_time = serializers.IntegerField(
+        validators=[
+            MinValueValidator(MIN_AMOUNT),
+            MaxValueValidator(MAX_AMOUNT)
+        ]
     )
 
     class Meta:

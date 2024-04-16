@@ -1,23 +1,36 @@
 from django.db import models
-from django.core.validators import MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 from users.models import CustomUser
+
+MAX_LEN_STR = 20
+MAX_LEN_COLOR = 7
+MIN_COOKING_TIME = AMOUNT_MIN_VALUE = 1
+MAX_COOKING_TIME = AMOUNT_MAХ_VALUE = 32000
+MAX_LEN_RECIPE_TEXT = 2000
+(
+    MAX_LEN_TAG_NAME,
+    MAX_LEN_TAG_SLUG,
+    MAX_LEN_INGREGIENT,
+    MAX_LEN_UNIT,
+    MAX_LEN_RECIPE_NAME
+) = [200 for _ in range(5)]
 
 
 class Tag(models.Model):
     name = models.CharField(
         'Название',
-        max_length=150,
+        max_length=MAX_LEN_TAG_NAME,
         unique=True
     )
     color = models.CharField(
         'Цвет',
         unique=True,
-        max_length=7
+        max_length=MAX_LEN_COLOR
     )
     slug = models.SlugField(
         'Слаг',
-        max_length=150,
+        max_length=MAX_LEN_TAG_SLUG,
         unique=True
     )
 
@@ -27,17 +40,17 @@ class Tag(models.Model):
         ordering = ('id',)
 
     def __str__(self):
-        return self.name[:30]
+        return self.name[:MAX_LEN_STR]
 
 
 class Ingredient(models.Model):
     name = models.CharField(
         'Название ингредиента',
-        max_length=150
+        max_length=MAX_LEN_INGREGIENT
     )
     measurement_unit = models.CharField(
         'Единица измерения',
-        max_length=150
+        max_length=MAX_LEN_UNIT
     )
 
     class Meta:
@@ -51,7 +64,10 @@ class Ingredient(models.Model):
         ]
 
     def __str__(self):
-        return f'{self.name[:15]}, {self.measurement_unit[:15]}'
+        return (
+            f'{self.name[:MAX_LEN_STR]}, '
+            f'{self.measurement_unit[:MAX_LEN_STR]}'
+        )
 
 
 class Recipe(models.Model):
@@ -78,19 +94,18 @@ class Recipe(models.Model):
     )
     name = models.CharField(
         'Название',
-        max_length=200
+        max_length=MAX_LEN_RECIPE_NAME
     )
     text = models.CharField(
         'Описание',
-        max_length=2000
+        max_length=MAX_LEN_RECIPE_TEXT
     )
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления (мин)',
         validators=[
-            MinValueValidator(
-                1, 'Время приготовления не может быть меньше 1 минуты'
-            )
-        ]
+            MinValueValidator(MIN_COOKING_TIME),
+            MaxValueValidator(MAX_COOKING_TIME),
+        ],
     )
     pub_date = models.DateTimeField(
         'Дата публикации',
@@ -103,7 +118,7 @@ class Recipe(models.Model):
         ordering = ('-pub_date',)
 
     def __str__(self):
-        return self.name[:30]
+        return self.name[:MAX_LEN_STR]
 
 
 class RecipeIngredient(models.Model):
@@ -122,13 +137,15 @@ class RecipeIngredient(models.Model):
     amount = models.PositiveSmallIntegerField(
         'Количество',
         validators=[
-            MinValueValidator(1, 'Минимальное значение - 1')
-        ]
+            MinValueValidator(AMOUNT_MIN_VALUE),
+            MaxValueValidator(AMOUNT_MAХ_VALUE),
+        ],
     )
 
     class Meta:
         verbose_name = 'Ингредиент рецепта'
         verbose_name_plural = 'Ингредиенты рецепта'
+        ordering = ('id',)
 
     def __str__(self):
         return f'{self.ingredient}: {self.amount}'
@@ -148,6 +165,7 @@ class ShoppingFavoriteModel(models.Model):
 
     class Meta:
         abstract = True
+        ordering = ('id',)
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'recipe'],
@@ -164,7 +182,10 @@ class ShoppingCart(ShoppingFavoriteModel):
         default_related_name = 'shopping_carts'
 
     def __str__(self):
-        return f'{self.user[:15]}: {self.recipe[:15]}'
+        return (
+            f'{self.user[:MAX_LEN_STR]}: '
+            f'{self.recipe[:MAX_LEN_STR]}'
+        )
 
 
 class Favorite(ShoppingFavoriteModel):
@@ -175,4 +196,7 @@ class Favorite(ShoppingFavoriteModel):
         default_related_name = 'favorite_recipes'
 
     def __str__(self):
-        return f'{self.user[:15]}: {self.recipe[:15]}'
+        return (
+            f'{self.user[:MAX_LEN_STR]}: '
+            f'{self.recipe[:MAX_LEN_STR]}'
+        )

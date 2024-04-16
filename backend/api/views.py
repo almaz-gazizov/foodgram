@@ -20,7 +20,7 @@ from api.serializers import (
     SubscriptionCreateSerializer, SubscriptionSerializer, TagSerializer
 )
 from recipes.models import (
-    Favorite, Ingredient, Recipe, RecipeIngredient, ShoppingCart, Tag
+    Ingredient, Recipe, RecipeIngredient, Tag
 )
 from users.models import CustomUser
 
@@ -60,7 +60,8 @@ class CustomUserViewSet(UserViewSet):
         pagination_class=CustomPagination
     )
     def subscriptions(self, request):
-        queryset = CustomUser.objects.filter(author__user=self.request.user)
+        user = request.user
+        queryset = user.author.all()
         pages = self.paginate_queryset(queryset)
         serializer = SubscriptionSerializer(
             pages, many=True, context={'request': request}
@@ -83,7 +84,7 @@ class CustomUserViewSet(UserViewSet):
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
-        elif request.method == 'DELETE':
+        if request.method == 'DELETE':
             delete_subscription, _ = (
                 request.user.subscribers.filter(author=author).delete()
             )
@@ -121,18 +122,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        elif request.method == 'DELETE':
-            get_object_or_404(Recipe, id=pk)
-            user_id = request.user.id
-            delete_favorite, _ = Favorite.objects.filter(
-                user__id=user_id,
-                recipe__id=pk
-            ).delete()
-            if not delete_favorite:
+        if request.method == 'DELETE':
+            recipe = get_object_or_404(Recipe, id=pk)
+            user = request.user
+            delete_favorite = user.favorite_recipes.filter(recipe=recipe)
+            if not delete_favorite.exists():
                 return Response(
                     'Нет избранного.',
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            delete_favorite.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -151,17 +150,16 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-        elif request.method == 'DELETE':
-            get_object_or_404(ShoppingCart, recipe_id=pk)
-            delete_cnt, _ = ShoppingCart.objects.filter(
-                user__id=request.user.id,
-                recipe__id=pk
-            ).delete()
-            if not delete_cnt:
+        if request.method == 'DELETE':
+            recipe = get_object_or_404(Recipe, id=pk)
+            user = request.user
+            delete_shopping_cart = user.shopping_carts.filter(recipe=recipe)
+            if not delete_shopping_cart.exists():
                 return Response(
                     'Нет покупок.',
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            delete_shopping_cart.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @staticmethod
