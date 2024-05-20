@@ -1,9 +1,5 @@
 ![Build Status](https://github.com/almaz-gazizov/foodgram-project-react/actions/workflows/main.yml/badge.svg)
 
-## Ссылка на сайт
-
-https://foodgram-gaz.hopto.org/
-
 #  Foodgram
 
 Foodgram — это сайт для публикации своих рецептов, добавления рецептов других пользователей в избранное или в корзину, для создания списка покупок из рецептов в корзине, а также для того, чтобы подписываться на других авторов и следить за их новыми публикациями.
