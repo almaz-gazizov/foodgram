@@ -116,6 +116,6 @@ TELEGRAM_TO
 TELEGRAM_TOKEN
 ```
 
-### Автор
+## Автор:
 
-Алмаз Газизов
+[Алмаз Газизов](https://github.com/almaz-gazizov)
